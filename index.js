@@ -75,60 +75,114 @@ class BarChart {
 
   render() {
     const maxY = Math.max(...this.data.map(d => d.value));
+    const minY = Math.min(...this.data.map(d => d.value));
     const chartWidth = this.width - 2 * this.padding;
     const chartHeight = this.height - 2 * this.padding;
-    const barWidth = chartWidth / this.data.length * (1 - this.barSpacing);
-    const spacing = chartWidth / this.data.length * this.barSpacing;
+    const barWidth = (chartWidth / this.data.length) * (this.barSpacing || 0.8);
+    const spacing = (chartWidth / this.data.length) * ((1 - (this.barSpacing || 0.8)) / 2);
 
     let svg = SVGFactory.createSVG(this.width, this.height);
     
-    // Add enhanced hover styles and animations
+    // Professional styling with recharts-inspired design
     svg += `<style>
-      .bar { 
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        cursor: pointer; 
+      .bar-chart {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        font-size: 12px;
+        color: #666;
+      }
+      
+      .grid-line {
+        stroke: #f0f0f0;
+        stroke-width: 1;
+        opacity: 0.7;
+      }
+      
+      .axis-line {
+        stroke: #ddd;
+        stroke-width: 1;
+      }
+      
+      .bar {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
         filter: drop-shadow(0 1px 3px rgba(0,0,0,0.1));
-        border-radius: 2px;
+        rx: 3;
       }
-      .bar:hover { 
-        opacity: 0.85; 
-        transform: translateY(-3px) scale(1.02);
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+      
+      .bar:hover {
+        filter: drop-shadow(0 3px 8px rgba(0,0,0,0.15));
+        transform: translateY(-2px);
       }
+      
+      .bar-group:hover .bar {
+        fill-opacity: 0.9;
+      }
+      
+      .value-label {
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 600;
+        font-size: 11px;
+        fill: #333;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        dominant-baseline: middle;
+      }
+      
+      .bar-group:hover .value-label {
+        opacity: 1;
+        transform: translateY(-8px);
+      }
+      
       .tooltip {
         opacity: 0;
-        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         pointer-events: none;
-        backdrop-filter: blur(4px);
       }
+      
       .bar-group:hover .tooltip {
         opacity: 1;
       }
-      .value-label {
-        opacity: 0;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        font-weight: 600;
+      
+      .x-axis-label {
         font-size: 11px;
-        fill: #1f2937;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        fill: #666;
+        text-anchor: middle;
+        font-weight: 500;
       }
-      .bar-group:hover .value-label {
-        opacity: 1;
-        transform: translateY(-2px);
+      
+      .y-axis-label {
+        font-size: 10px;
+        fill: #999;
+        text-anchor: end;
+        dominant-baseline: middle;
       }
     </style>`;
 
     svg += SVGFactory.createGroup();
     
     this.data.forEach((item, index) => {
-      const barHeight = normalizeCoordinate(item.value, 0, maxY, 0, chartHeight);
+      const barHeight = normalizeCoordinate(item.value, minY, maxY, 0, chartHeight);
       const x = this.padding + index * (barWidth + spacing) + spacing/2;
       const y = this.height - this.padding - barHeight;
       
+      // Professional color gradients
+      const gradientId = `bar-gradient-${index}`;
+      const colors = this.colors[index] || getColor(index);
+      const hoverColor = this.adjustColorBrightness(colors, -0.1); // Slightly darker for hover
+      
+      // Add gradient definition
+      svg += `<defs>
+        <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:${colors};stop-opacity:0.9" />
+          <stop offset="100%" style="stop-color:${colors};stop-opacity:0.7" />
+        </linearGradient>
+      </defs>`;
+      
       svg += SVGFactory.createGroup({ class: 'bar-group' });
       
+      // Main bar with gradient
       svg += `<rect class="bar" x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" 
-              fill="${this.colors[index] || getColor(index)}" rx="2" />`;
+              fill="url(#${gradientId})" rx="3" />`;
       
       // Add hover value label
       if (this.hoverEffects) {
@@ -175,7 +229,7 @@ class BarChart {
       }
       
       if (this.showLabels && item.label) {
-        svg += `<text x="${x + barWidth/2}" y="${this.height - this.padding + 15}" 
+        svg += `<text class="x-axis-label" x="${x + barWidth/2}" y="${this.height - this.padding + 15}" 
                 text-anchor="middle" font-size="12" fill="#666">${item.label}</text>`;
       }
       
@@ -186,6 +240,23 @@ class BarChart {
     svg += SVGFactory.closeSVG();
     
     return svg;
+  }
+
+  adjustColorBrightness(hex, percent) {
+    // Remove # if present
+    hex = hex.replace(/^#/, '');
+    
+    // Parse r, g, b values
+    const num = parseInt(hex, 16);
+    const amt = Math.round(2.55 * percent);
+    
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    
+    return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
   }
 }
 
