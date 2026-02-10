@@ -138,20 +138,37 @@ class BarChart {
                 </text>`;
       }
       
-      // Add tooltip
+      // Add tooltip - positioned inside bar when possible
       if (this.showTooltips) {
-        const tooltipY = y - 25;
+        // Check if text fits inside bar
+        const textWidth = (item.label || `Item ${index + 1}`).length * 6 + item.value.toString().length * 7;
+        const fitsInside = barHeight > 40 && barWidth > textWidth + 20;
+        
+        let tooltipX, tooltipY, tooltipWidth, tooltipHeight;
+        
+        if (fitsInside) {
+          // Position inside the bar
+          tooltipX = x + barWidth/2 - 35;
+          tooltipY = y + barHeight/2 - 10;
+          tooltipWidth = 70;
+          tooltipHeight = 20;
+        } else {
+          // Position above the bar (fallback)
+          tooltipX = x + barWidth/2 - 35;
+          tooltipY = y - 30;
+          tooltipWidth = 70;
+          tooltipHeight = 25;
+        }
+        
         svg += `<g class="tooltip">
-          <rect x="${x + barWidth/2 - 35}" y="${tooltipY - 15}" width="70" height="25" 
-                fill="rgba(31, 41, 55, 0.95)" rx="6" />
-          <rect x="${x + barWidth/2 - 35}" y="${tooltipY - 15}" width="70" height="25" 
-                fill="rgba(31, 41, 55, 0.95)" rx="6" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
-          <text x="${x + barWidth/2}" y="${tooltipY - 2}" text-anchor="middle" 
-                fill="white" font-size="10" font-weight="500">
+          <rect x="${tooltipX}" y="${tooltipY - 2}" width="${tooltipWidth}" height="${tooltipHeight}" 
+                fill="white" rx="3" stroke="#ddd" stroke-width="1" />
+          <text x="${x + barWidth/2}" y="${tooltipY + 3}" text-anchor="middle" 
+                fill="black" font-size="10" font-weight="500">
             ${item.label || `Item ${index + 1}`}
           </text>
-          <text x="${x + barWidth/2}" y="${tooltipY + 10}" text-anchor="middle" 
-                fill="white" font-size="12" font-weight="bold">
+          <text x="${x + barWidth/2}" y="${tooltipY + 15}" text-anchor="middle" 
+                fill="black" font-size="11" font-weight="bold">
             ${item.value}
           </text>
         </g>`;
