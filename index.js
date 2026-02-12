@@ -390,9 +390,26 @@ class LineChart {
         stroke-dasharray: 3,3;
         stroke-linecap: round;
       }
+      .crosshair-line {
+        stroke: #666;
+        stroke-width: 1;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease-out;
+      }
+      .chart-area:hover .crosshair-line {
+        opacity: 0.7;
+      }
     </style>`;
 
-    svg += SVGFactory.createGroup();
+    svg += SVGFactory.createGroup({ 
+      class: 'chart-area',
+      onmousemove: `event.preventDefault(); const rect = this.getBoundingClientRect(); const x = event.clientX - rect.left; const line = this.querySelector('.crosshair-line'); if (line && x >= ${this.padding} && x <= ${this.width - this.padding}) { line.setAttribute('x1', x); line.setAttribute('x2', x); }`,
+      onmouseout: `const line = this.querySelector('.crosshair-line'); if (line) { line.setAttribute('x1', '0'); line.setAttribute('x2', '0'); }`
+    });
+    
+    // Add crosshair line that follows mouse
+    svg += `<line class="crosshair-line" x1="0" y1="${this.padding}" x2="0" y2="${this.height - this.padding}" />`;
 
     // Create path
     const points = this.data.map((item, index) => {
