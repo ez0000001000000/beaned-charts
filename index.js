@@ -71,6 +71,14 @@ class BarChart {
     this.barSpacing = options.barSpacing || 0.2;
     this.showTooltips = options.showTooltips !== false;
     this.hoverEffects = options.hoverEffects !== false;
+    
+    // New customizable bar dimensions
+    this.barWidth = options.barWidth; // Custom width for all bars, or array of widths
+    this.barHeight = options.barHeight; // Custom height for all bars, or array of heights
+    this.minBarWidth = options.minBarWidth || 20; // Minimum bar width
+    this.maxBarWidth = options.maxBarWidth; // Maximum bar width
+    this.minBarHeight = options.minBarHeight || 10; // Minimum bar height
+    this.maxBarHeight = options.maxBarHeight; // Maximum bar height
   }
 
   render() {
@@ -78,8 +86,38 @@ class BarChart {
     const minY = Math.min(...this.data.map(d => d.value));
     const chartWidth = this.width - 2 * this.padding;
     const chartHeight = this.height - 2 * this.padding;
-    const barWidth = (chartWidth / this.data.length) * (this.barSpacing || 0.8);
-    const spacing = (chartWidth / this.data.length) * ((1 - (this.barSpacing || 0.8)) / 2);
+    
+    // Calculate or use custom bar dimensions
+    let barWidths = [];
+    let barHeights = [];
+    
+    if (Array.isArray(this.barWidth)) {
+      // Individual widths for each bar
+      barWidths = this.barWidth.map(w => Math.max(this.minBarWidth || 0, Math.min(this.maxBarWidth || w, w)));
+    } else if (this.barWidth) {
+      // Same width for all bars
+      barWidths = new Array(this.data.length).fill(Math.max(this.minBarWidth || 0, Math.min(this.maxBarWidth || this.barWidth, this.barWidth)));
+    } else {
+      // Auto-calculate widths
+      const defaultBarWidth = (chartWidth / this.data.length) * (this.barSpacing || 0.8);
+      barWidths = new Array(this.data.length).fill(Math.max(this.minBarWidth || 0, defaultBarWidth));
+    }
+    
+    if (Array.isArray(this.barHeight)) {
+      // Individual heights for each bar
+      barHeights = this.barHeight.map(h => Math.max(this.minBarHeight || 0, Math.min(this.maxBarHeight || h, h)));
+    } else if (this.barHeight) {
+      // Same height for all bars
+      barHeights = new Array(this.data.length).fill(Math.max(this.minBarHeight || 0, Math.min(this.maxBarHeight || this.barHeight, this.barHeight)));
+    } else {
+      // Auto-calculate heights based on data
+      barHeights = this.data.map(item => normalizeCoordinate(item.value, minY, maxY, this.minBarHeight || 0, Math.max(this.maxBarHeight || chartHeight, this.minBarHeight || 10)));
+    }
+    
+    // Calculate spacing based on bar widths
+    const totalBarWidth = barWidths.reduce((sum, w) => sum + w, 0);
+    const totalSpacing = chartWidth - totalBarWidth;
+    const spacing = totalSpacing / (this.data.length + 1);
 
     let svg = SVGFactory.createSVG(this.width, this.height);
     
@@ -161,8 +199,9 @@ class BarChart {
     svg += SVGFactory.createGroup();
     
     this.data.forEach((item, index) => {
-      const barHeight = normalizeCoordinate(item.value, minY, maxY, 0, chartHeight);
-      const x = this.padding + index * (barWidth + spacing) + spacing/2;
+      const barHeight = barHeights[index] || normalizeCoordinate(item.value, minY, maxY, this.minBarHeight || 0, chartHeight);
+      const barWidth = barWidths[index];
+      const x = this.padding + spacing + index * (barWidth + spacing);
       const y = this.height - this.padding - barHeight;
       
       // Professional color gradients
@@ -194,36 +233,51 @@ class BarChart {
       
       // Add tooltip - positioned inside bar when possible
       if (this.showTooltips) {
-        // Check if text fits inside bar
-        const textWidth = (item.label || `Item ${index + 1}`).length * 6 + item.value.toString().length * 7;
-        const fitsInside = barHeight > 40 && barWidth > textWidth + 20;
+        // Calculate text dimensions
+        const labelText = item.label || `Item ${index + 1}`;
+        const valueText = item.value.toString();
+        const maxCharsPerLine = 12; // Approximate characters that fit comfortably
         
-        let tooltipX, tooltipY, tooltipWidth, tooltipHeight;
+        // Calculate number of lines needed
+        const labelLines = Math.ceil(labelText.length / maxCharsPerLine);
+        const valueLines = Math.ceil(valueText.length / maxCharsPerLine);
+        const totalLines = labelLines + valueLines;
+        
+        // Calculate dynamic height (base height + extra for each line)
+        const baseHeight = 20;
+        const lineHeight = 14;
+        const padding = 8;
+        const tooltipHeight = baseHeight + (totalLines - 1) * lineHeight + padding;
+        
+        // Check if text fits inside bar
+        const textWidth = Math.max(labelText.length, valueText.length) * 6 + 20;
+        const fitsInside = barHeight > tooltipHeight + 10 && barWidth > textWidth + 20;
+        
+        let tooltipX, tooltipY, tooltipWidth;
         
         if (fitsInside) {
           // Position inside the bar
-          tooltipX = x + barWidth/2 - 35;
-          tooltipY = y + barHeight/2 - 10;
-          tooltipWidth = 70;
-          tooltipHeight = 20;
+          tooltipX = x + barWidth/2 - 40;
+          tooltipY = y + barHeight/2 - tooltipHeight/2;
+          tooltipWidth = Math.max(textWidth, 80);
         } else {
           // Position above the bar (fallback)
-          tooltipX = x + barWidth/2 - 35;
-          tooltipY = y - 30;
-          tooltipWidth = 70;
-          tooltipHeight = 25;
+          tooltipX = x + barWidth/2 - 40;
+          tooltipY = y - tooltipHeight - 5;
+          tooltipWidth = Math.max(textWidth, 80);
         }
         
         svg += `<g class="tooltip">
-          <rect x="${tooltipX}" y="${tooltipY - 2}" width="${tooltipWidth}" height="${tooltipHeight}" 
-                fill="white" rx="3" stroke="#ddd" stroke-width="1" />
-          <text x="${x + barWidth/2}" y="${tooltipY + 3}" text-anchor="middle" 
-                fill="black" font-size="10" font-weight="500">
-            ${item.label || `Item ${index + 1}`}
-          </text>
+          <rect x="${tooltipX}" y="${tooltipY}" width="${tooltipWidth}" height="${tooltipHeight}" 
+                fill="white" rx="4" stroke="#e1e5e9" stroke-width="1" 
+                filter="drop-shadow(0 2px 8px rgba(0,0,0,0.1))" />
           <text x="${x + barWidth/2}" y="${tooltipY + 15}" text-anchor="middle" 
-                fill="black" font-size="11" font-weight="bold">
-            ${item.value}
+                fill="#374151" font-size="11" font-weight="500">
+            ${labelText}
+          </text>
+          <text x="${x + barWidth/2}" y="${tooltipY + 15 + (labelLines * lineHeight)}" text-anchor="middle" 
+                fill="#111827" font-size="12" font-weight="600">
+            ${valueText}
           </text>
         </g>`;
       }
