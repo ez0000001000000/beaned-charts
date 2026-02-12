@@ -1,6 +1,16 @@
 # 🫘 Beaned-Charts
 
+[![npm version](https://badge.fury.io/js/beaned-charts.svg)](https://badge.fury.io/js/beaned-charts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Minimalist, zero-dependency SVG chart library for modern web applications. Generate beautiful, responsive charts with pure JavaScript - no frameworks required!
+
+## 📸 Previews
+
+### BarChart
+![BarChart Preview](https://cdn.gamma.app/0q3kwkx42ofh0ga/38506d30ac964d58a4cba64041f54107/original/image.png)
+
+*Professional BarChart with customizable dimensions, dynamic tooltips, gradients, and hover effects.*
 
 ## ✨ Features
 
