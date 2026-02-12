@@ -80,7 +80,15 @@ const chart = new BarChart(data, {
   barSpacing: 0.2,
   colors: ['#3b82f6', '#ef4444', '#10b981'],
   showTooltips: true,    // Show tooltips on hover
-  hoverEffects: true     // Enable hover animations
+  hoverEffects: true,     // Enable hover animations
+  
+  // New customization options
+  barWidth: 30,           // Fixed width for all bars (or array for individual widths)
+  barHeight: null,        // Fixed height for all bars (or array for individual heights)
+  minBarWidth: 20,        // Minimum bar width (default: 20)
+  maxBarWidth: null,      // Maximum bar width (optional)
+  minBarHeight: 10,       // Minimum bar height (default: 10)
+  maxBarHeight: null      // Maximum bar height (optional)
 });
 ```
 
@@ -93,6 +101,39 @@ const chart = new BarChart(data, {
 - `colors` (string[]) - Custom color palette
 - `showTooltips` (boolean) - Show tooltips on hover (default: true)
 - `hoverEffects` (boolean) - Enable hover animations (default: true)
+
+**Bar Customization Options:**
+- `barWidth` (number|number[]) - Fixed width for all bars, or array of widths for each bar
+- `barHeight` (number|number[]) - Fixed height for all bars, or array of heights for each bar  
+- `minBarWidth` (number) - Minimum allowed bar width (default: 20)
+- `maxBarWidth` (number) - Maximum allowed bar width (optional)
+- `minBarHeight` (number) - Minimum allowed bar height (default: 10)
+- `maxBarHeight` (number) - Maximum allowed bar height (optional)
+
+**Customization Examples:**
+
+```javascript
+// Fixed bar width for all bars
+const chart1 = new BarChart(data, { barWidth: 40 });
+
+// Individual widths for each bar
+const chart2 = new BarChart(data, { barWidth: [20, 40, 60, 30] });
+
+// Fixed bar height with constraints
+const chart3 = new BarChart(data, { 
+  barHeight: 100, 
+  minBarHeight: 50,
+  maxBarHeight: 150 
+});
+
+// Mixed customization
+const chart4 = new BarChart(data, {
+  barWidth: [25, 35, 45],  // Individual widths
+  barHeight: null,          // Auto-height based on data
+  minBarWidth: 20,          // Enforce minimum width
+  maxBarWidth: 50           // Enforce maximum width
+});
+```
 
 **Interactive Features:**
 - 🖱️ **Hover Effects** - Bars lift and show shadows on hover
