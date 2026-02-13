@@ -1,11 +1,15 @@
 {
   "name": "beaned-charts",
-  "version": "1.4.0",
+  "version": "1.6.1",
   "description": "Minimalist, zero-dependency SVG chart library for modern web applications",
   "main": "index.js",
   "files": [
     "index.js",
     "index.d.ts",
+    "BarChart.js",
+    "LineChart.js", 
+    "PieChart.js",
+    "utils.js",
     "react-components.js",
     "react-demo.js",
     "styled-charts.md",
