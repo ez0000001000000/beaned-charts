@@ -213,21 +213,15 @@ class PieChart {
     const end = polarToCartesian(centerX, centerY, outerRadius, endAngle);
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
-    let path = [
-      "M", start.x, start.y,
-      "A", outerRadius, outerRadius, 0, largeArcFlag, 1, end.x, end.y
-    ];
-
-    if (innerRadius > 0) {
+    if (innerRadius === 0) {
+      // Pie slice: start at center, line to start, arc to end, close to center
+      return `M ${centerX} ${centerY} L ${start.x} ${start.y} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+    } else {
+      // Donut slice: start at outer start, arc outer, line to inner start, arc inner, close
       const innerStart = polarToCartesian(centerX, centerY, innerRadius, endAngle);
       const innerEnd = polarToCartesian(centerX, centerY, innerRadius, startAngle);
-
-      path.push("L", innerStart.x, innerStart.y);
-      path.push("A", innerRadius, innerRadius, 0, largeArcFlag, 0, innerEnd.x, innerEnd.y);
+      return `M ${start.x} ${start.y} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${end.x} ${end.y} L ${innerStart.x} ${innerStart.y} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerEnd.x} ${innerEnd.y} Z`;
     }
-
-    path.push("Z");
-    return path.join(" ");
   }
 }
 
