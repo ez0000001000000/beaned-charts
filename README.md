@@ -7,10 +7,10 @@
 
 ## 📸 Preview
 
-### Professional LineChart with Dark Theme
-![LineChart Preview](https://cdn.gamma.app/0q3kwkx42ofh0ga/38506d30ac964d58a4cba64041f54107/original/image.png)
+### Professional BarChart with Customizable Dimensions
+![BarChart Preview](https://cdn.gamma.app/0q3kwkx42ofh0ga/38506d30ac964d58a4cba64041f54107/original/image.png)
 
-*Smooth curves, crosshair, customizable tooltips, and extensive styling options.*
+*Professional bars with customizable dimensions, gradients, dynamic tooltips, and hover effects.*
 
 ## 🚀 Quick Start
 
