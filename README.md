@@ -153,40 +153,64 @@ const chart4 = new BarChart(data, {
 
 ### Line Chart
 
-Ideal for showing trends over time with optional smoothing, area fills, and interactive data points.
+Perfect for showing trends over time with smooth curves, customizable themes, and interactive crosshair.
 
 ```javascript
-const chart = new LineChart(data, {
-  width: 500,
+const chart = new LineChart([
+  { value: 100, date: '2024-01-01', label: 'Jan' },
+  { value: 120, date: '2024-02-01', label: 'Feb' },
+  { value: 180, date: '2024-03-01', label: 'Mar' }
+], {
+  width: 600,
   height: 300,
-  smooth: true,
-  fill: true,
-  color: '#10b981',
-  showPoints: true,
-  showTooltips: true,        // Show tooltips on hover
-  hoverEffects: true,        // Enable hover animations
-  showAreaHighlight: true   // Show area highlights on hover
+  color: '#90EE90',           // Line color
+  theme: 'dark',              // 'dark' or 'light' theme
+  smooth: true,               // Smooth curved lines
+  strokeWidth: 3,             // Line thickness
+  pointRadius: 5,             // Data point size
+  pointColor: '#90EE90',      // Point fill color
+  pointStrokeColor: '#1a1a1a', // Point stroke color
+  showGrid: true,             // Show grid lines
+  showXAxis: true,            // Show X-axis labels
+  showCrosshair: true,        // Show crosshair line
+  showTooltip: true,          // Show crosshair tooltip
+  xAxisLabels: ['January', 'February', 'March'], // Custom X-axis labels
+  dateFormat: (date) => new Date(date).toLocaleDateString() // Date formatting function
 });
 ```
 
 **Options:**
 - `width` (number) - Chart width in pixels
-- `height` (number) - Chart height in pixels
+- `height` (number) - Chart height in pixels  
 - `padding` (number) - Padding around chart (default: 40)
-- `smooth` (boolean) - Use curved lines (default: false)
-- `fill` (boolean) - Fill area under line (default: false)
-- `color` (string) - Line color
-- `showPoints` (boolean) - Show data points (default: true)
-- `showTooltips` (boolean) - Show tooltips on hover (default: true)
-- `hoverEffects` (boolean) - Enable hover animations (default: true)
-- `showAreaHighlight` (boolean) - Show area highlights (default: true)
+- `color` (string) - Line color (default: '#90EE90')
+- `theme` (string) - Theme: 'dark' or 'light' (default: 'dark')
+- `backgroundColor` (string) - Custom background color (optional)
+- `smooth` (boolean) - Use smooth curves (default: true)
+- `strokeWidth` (number) - Line thickness (default: 2)
+- `pointRadius` (number) - Data point radius (default: 4)
+- `pointColor` (string) - Point fill color (default: line color)
+- `pointStrokeColor` (string) - Point stroke color (default: '#1a1a1a')
+
+**Theme & Styling Options:**
+- `showGrid` (boolean) - Show grid lines (default: true)
+- `gridColor` (string) - Grid line color (theme-based default)
+- `axisColor` (string) - Axis text color (theme-based default)
+- `crosshairColor` (string) - Crosshair line color (theme-based default)
+
+**Data & Labels Options:**
+- `showXAxis` (boolean) - Show X-axis labels (default: true)
+- `xAxisLabels` (string[]) - Custom X-axis labels array
+- `dateFormat` (function) - Function to format dates for labels
+- `showCrosshair` (boolean) - Show vertical crosshair line (default: true)
+- `showTooltip` (boolean) - Show crosshair tooltip (default: true)
+- `tooltipFormat` (function) - Custom tooltip formatting function
 
 **Interactive Features:**
-- 🎯 **Data Points** - Interactive points that grow on hover
-- 📈 **Line Highlight** - Line thickens and glows on hover
-- 📍 **Guide Lines** - Vertical guides appear on hover
-- 💬 **Tooltips** - Show point values and indices
-- 🌟 **Area Highlights** - Highlight chart areas on hover
+- �️ **Crosshair Line** - Vertical line follows mouse cursor
+- 💬 **Tooltip** - Shows value and date at crosshair position
+- � **Data Points** - Interactive points with custom styling
+- ✨ **Smooth Animations** - CSS transitions for all interactions
 
 ### Pie Chart
 

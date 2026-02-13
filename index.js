@@ -320,13 +320,24 @@ class LineChart {
     this.width = options.width || 400;
     this.height = options.height || 300;
     this.padding = options.padding || 40;
-    this.color = options.color || '#3b82f6';
-    this.smooth = options.smooth || false;
-    this.showPoints = options.showPoints !== false;
-    this.fill = options.fill || false;
-    this.showTooltips = options.showTooltips !== false;
-    this.hoverEffects = options.hoverEffects !== false;
-    this.showAreaHighlight = options.showAreaHighlight !== false;
+    this.color = options.color || '#90EE90';
+    this.theme = options.theme || 'dark'; // 'dark' or 'light'
+    this.showGrid = options.showGrid !== false; // Show grid lines
+    this.gridColor = options.gridColor || '#333'; // Grid line color
+    this.axisColor = options.axisColor || '#666'; // Axis text color
+    this.backgroundColor = options.backgroundColor; // Optional custom background
+    this.showXAxis = options.showXAxis !== false; // Show X-axis labels
+    this.xAxisLabels = options.xAxisLabels || []; // Custom X-axis labels
+    this.dateFormat = options.dateFormat; // Date formatting function
+    this.showCrosshair = options.showCrosshair !== false; // Show crosshair line
+    this.crosshairColor = options.crosshairColor || '#666'; // Crosshair color
+    this.showTooltip = options.showTooltip !== false; // Show crosshair tooltip
+    this.tooltipFormat = options.tooltipFormat; // Custom tooltip formatting
+    this.smooth = options.smooth !== false; // Use smooth curves
+    this.strokeWidth = options.strokeWidth || 2; // Line width
+    this.pointRadius = options.pointRadius || 4; // Data point radius
+    this.pointColor = options.pointColor || this.color; // Point color
+    this.pointStrokeColor = options.pointStrokeColor || '#1a1a1a'; // Point stroke color
   }
 
   render() {
@@ -337,163 +348,175 @@ class LineChart {
 
     let svg = SVGFactory.createSVG(this.width, this.height);
     
-    // Add enhanced hover styles and animations
+    // Theme-based styling
+    const isDark = this.theme === 'dark';
+    const bgColor = this.backgroundColor || (isDark ? '#0a0a0a' : '#ffffff');
+    const textColor = this.axisColor || (isDark ? '#666' : '#333');
+    const gridColor = this.gridColor || (isDark ? '#333' : '#e5e5e5');
+    const crosshairColor = this.crosshairColor || (isDark ? '#666' : '#ccc');
+    
     svg += `<style>
+      .chart-container {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+      .grid-line {
+        stroke: ${gridColor};
+        stroke-width: 1;
+        stroke-dasharray: 4,4;
+        opacity: 0.5;
+      }
+      .axis-text {
+        fill: ${textColor};
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .x-axis-text {
+        fill: ${textColor};
+        font-size: 11px;
+        font-weight: 500;
+        text-anchor: middle;
+      }
       .chart-line { 
-        transition: stroke-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.08));
+        fill: none;
+        stroke: ${this.color};
+        stroke-width: ${this.strokeWidth};
         stroke-linecap: round;
         stroke-linejoin: round;
       }
-      .chart-line:hover { 
-        stroke-width: 3;
-        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-      }
       .data-point { 
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        cursor: pointer;
-        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.08));
-      }
-      .data-point:hover { 
-        r: 6;
-        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
-      }
-      .tooltip {
-        opacity: 0;
-        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        pointer-events: none;
-        backdrop-filter: blur(4px);
-      }
-      .point-group:hover .tooltip {
-        opacity: 1;
-      }
-      .value-label {
-        opacity: 0;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        font-weight: 600;
-        font-size: 10px;
-        fill: #1f2937;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      }
-      .point-group:hover .value-label {
-        opacity: 1;
-        transform: translateY(-3px);
-      }
-      .area-highlight {
-        opacity: 0;
-        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .point-group:hover .area-highlight {
-        opacity: 0.15;
-      }
-      .guide-line {
-        stroke-dasharray: 3,3;
-        stroke-linecap: round;
+        fill: ${this.pointColor};
+        stroke: ${this.pointStrokeColor};
+        stroke-width: 2;
       }
       .crosshair-line {
-        stroke: #666;
+        stroke: ${crosshairColor};
         stroke-width: 1;
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.15s ease-out;
       }
       .chart-area:hover .crosshair-line {
-        opacity: 0.7;
+        opacity: 0.8;
+      }
+      .crosshair-tooltip {
+        opacity: 0;
+        transition: opacity 0.15s ease-out;
+        pointer-events: none;
+      }
+      .chart-area:hover .crosshair-tooltip {
+        opacity: 1;
       }
     </style>`;
 
+    // Background
+    svg += `<rect width="${this.width}" height="${this.height}" fill="${bgColor}" rx="8" />`;
+    
     svg += SVGFactory.createGroup({ 
       class: 'chart-area',
-      onmousemove: `event.preventDefault(); const rect = this.getBoundingClientRect(); const x = event.clientX - rect.left; const line = this.querySelector('.crosshair-line'); if (line && x >= ${this.padding} && x <= ${this.width - this.padding}) { line.setAttribute('x1', x); line.setAttribute('x2', x); }`,
-      onmouseout: `const line = this.querySelector('.crosshair-line'); if (line) { line.setAttribute('x1', '0'); line.setAttribute('x2', '0'); }`
+      onmousemove: `event.preventDefault(); const rect = this.getBoundingClientRect(); const x = event.clientX - rect.left; const line = this.querySelector('.crosshair-line'); const tooltip = this.querySelector('.crosshair-tooltip'); if (line && x >= ${this.padding} && x <= ${this.width - this.padding}) { line.setAttribute('x1', x); line.setAttribute('x2', x); if (tooltip) { tooltip.setAttribute('transform', 'translate(' + (x + 10) + ', ' + (event.clientY - rect.top - 30) + ')'); } }`,
+      onmouseout: `const line = this.querySelector('.crosshair-line'); const tooltip = this.querySelector('.crosshair-tooltip'); if (line) { line.setAttribute('x1', '0'); line.setAttribute('x2', '0'); } if (tooltip) { tooltip.setAttribute('transform', 'translate(0,0)'); }`
     });
     
-    // Add crosshair line that follows mouse
-    svg += `<line class="crosshair-line" x1="0" y1="${this.padding}" x2="0" y2="${this.height - this.padding}" />`;
+    // Add grid lines and Y-axis labels
+    if (this.showGrid) {
+      const gridCount = 5;
+      for (let i = 0; i <= gridCount; i++) {
+        const y = this.padding + (i * chartHeight / gridCount);
+        const value = Math.round(maxY - (i * (maxY - minY) / gridCount));
+        
+        // Horizontal grid line
+        svg += `<line class="grid-line" x1="${this.padding}" y1="${y}" x2="${this.width - this.padding}" y2="${y}" />`;
+        
+        // Y-axis label
+        svg += `<text class="axis-text" x="${this.padding - 10}" y="${y + 4}" text-anchor="end">${value}</text>`;
+      }
+    }
+    
+    // Add crosshair line
+    if (this.showCrosshair) {
+      svg += `<line class="crosshair-line" x1="0" y1="${this.padding}" x2="0" y2="${this.height - this.padding}" />`;
+    }
 
-    // Create path
+    // Create points
     const points = this.data.map((item, index) => {
       const x = this.padding + normalizeCoordinate(index, 0, this.data.length - 1, 0, chartWidth);
       const y = this.height - this.padding - normalizeCoordinate(item.value, minY, maxY, 0, chartHeight);
-      return { x, y, value: item.value, index };
+      return { 
+        x, 
+        y, 
+        value: item.value, 
+        index, 
+        label: item.label,
+        date: item.date || item.label || `Point ${index + 1}`
+      };
     });
 
-    const pointStrings = points.map(p => `${p.x},${p.y}`);
+    // Create smooth curved path
     let pathData;
-    if (this.smooth && points.length > 2) {
-      pathData = this.createSmoothPath(pointStrings);
+    if (points.length > 1) {
+      pathData = this.smooth ? this.createCatmullRomPath(points) : `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
     } else {
-      pathData = `M ${pointStrings.join(' L ')}`;
-    }
-
-    // Add area fill if enabled
-    if (this.fill) {
-      const fillPath = pathData + ` L ${this.padding + chartWidth},${this.height - this.padding} L ${this.padding},${this.height - this.padding} Z`;
-      svg += `<path d="${fillPath}" fill="${this.color}" fill-opacity="0.2" class="chart-area" />`;
+      pathData = `M ${points[0].x},${points[0].y}`;
     }
 
     // Add the main line
-    svg += `<path d="${pathData}" fill="none" stroke="${this.color}" stroke-width="2" class="chart-line" />`;
+    svg += `<path d="${pathData}" class="chart-line" />`;
 
-    // Add interactive points
-    if (this.showPoints) {
+    // Add data points
+    points.forEach(point => {
+      svg += `<circle class="data-point" cx="${point.x}" cy="${point.y}" r="${this.pointRadius}" />`;
+    });
+    
+    // Add X-axis labels
+    if (this.showXAxis) {
       points.forEach((point, index) => {
-        svg += SVGFactory.createGroup({ class: 'point-group' });
-        
-        // Add area highlight on hover
-        if (this.showAreaHighlight) {
-          const highlightPath = `M ${point.x},${this.height - this.padding} L ${point.x},${point.y} L ${this.padding},${point.y} L ${this.padding},${this.height - this.padding} Z`;
-          svg += `<path d="${highlightPath}" fill="${this.color}" class="area-highlight" />`;
-        }
-        
-        // Add vertical guide line
-        if (this.hoverEffects) {
-          svg += `<line x1="${point.x}" y1="${point.y}" x2="${point.x}" y2="${this.height - this.padding}" 
-                  stroke="${this.color}" stroke-width="1" stroke-dasharray="2,2" opacity="0" class="guide-line">
-            <animate attributeName="opacity" values="0;0.3;0" dur="0.5s" begin="mouseover" />
-            <animate attributeName="opacity" values="0.3;0" dur="0.3s" begin="mouseout" />
-          </line>`;
-        }
-        
-        // Add the data point
-        svg += `<circle class="data-point" cx="${point.x}" cy="${point.y}" r="4" 
-                fill="${this.color}" stroke="white" stroke-width="2" />`;
-        
-        // Add hover value label
-        if (this.hoverEffects) {
-          svg += `<text class="value-label" x="${point.x}" y="${point.y - 10}" 
-                  text-anchor="middle" fill="#333" font-weight="bold" font-size="11">
-                  ${point.value}
-                  </text>`;
-        }
-        
-        // Add tooltip
-        if (this.showTooltips) {
-          const tooltipY = point.y - 35;
-          svg += `<g class="tooltip">
-            <rect x="${point.x - 40}" y="${tooltipY - 15}" width="80" height="30" 
-                  fill="rgba(31, 41, 55, 0.95)" rx="6" />
-            <rect x="${point.x - 40}" y="${tooltipY - 15}" width="80" height="30" 
-                  fill="rgba(31, 41, 55, 0.95)" rx="6" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-            <text x="${point.x}" y="${tooltipY - 2}" text-anchor="middle" 
-                  fill="white" font-size="10" font-weight="500">
-              Point ${index + 1}
-            </text>
-            <text x="${point.x}" y="${tooltipY + 10}" text-anchor="middle" 
-                  fill="white" font-size="11" font-weight="bold">
-              ${point.value}
-            </text>
-          </g>`;
-        }
-        
-        svg += SVGFactory.closeGroup();
+        const labelText = this.xAxisLabels[index] || 
+                         (this.dateFormat ? this.dateFormat(point.date) : point.date) ||
+                         `Point ${index + 1}`;
+        svg += `<text class="x-axis-text" x="${point.x}" y="${this.height - this.padding + 20}">${labelText}</text>`;
       });
+    }
+    
+    // Add crosshair tooltip
+    if (this.showTooltip) {
+      svg += `<g class="crosshair-tooltip">
+        <rect x="0" y="0" width="120" height="40" rx="8" fill="rgba(30,30,30,0.95)" stroke="#444" stroke-width="1" />
+        <text x="10" y="18" fill="${this.color}" font-size="14" font-weight="600" class="tooltip-value">328.00 USD</text>
+        <text x="10" y="32" fill="#888" font-size="11" class="tooltip-date">Mar 26</text>
+      </g>`;
     }
 
     svg += SVGFactory.closeGroup();
     svg += SVGFactory.closeSVG();
     
     return svg;
+  }
+
+  createCatmullRomPath(points) {
+    if (points.length < 2) return '';
+    if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
+    
+    let path = `M ${points[0].x},${points[0].y}`;
+    
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i - 1] || points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2] || p2;
+      
+      // Catmull-Rom spline calculation
+      const tension = 0.5;
+      
+      const cp1x = p1.x + (p2.x - p0.x) * tension / 6;
+      const cp1y = p1.y + (p2.y - p0.y) * tension / 6;
+      
+      const cp2x = p2.x - (p3.x - p1.x) * tension / 6;
+      const cp2y = p2.y - (p3.y - p1.y) * tension / 6;
+      
+      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    
+    return path;
   }
 
   createSmoothPath(points) {
